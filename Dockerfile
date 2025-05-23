@@ -18,12 +18,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем код приложения
 COPY . .
 
-# Создаем директорию для логов
-RUN mkdir -p /app/logs
-
 # Создаем непривилегированного пользователя
 RUN useradd --create-home --shell /bin/bash checkmate
-RUN chown -R checkmate:checkmate /app
+
+# Создаем директорию для логов и устанавливаем права
+RUN mkdir -p /app/logs && chown -R checkmate:checkmate /app
+
 USER checkmate
 
 # Указываем порт
