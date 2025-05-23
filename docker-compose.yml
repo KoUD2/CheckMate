@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  checkmate-bot:
+    build: .
+    container_name: checkmate-bot
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OCR_API_KEY=${OCR_API_KEY}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - WEBHOOK_HOST=0.0.0.0
+      - WEBHOOK_PORT=8443
+      - API_BASE_URL=${API_BASE_URL:-https://checkmateai.ru}
+      - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
+      - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
+    volumes:
+      - ./logs:/app/logs
+      - ./checkmate.log:/app/checkmate.log
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import requests; requests.get('http://localhost:8443/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - checkmate-network
+
+networks:
+  checkmate-network:
+    driver: bridge

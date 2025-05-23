@@ -1,0 +1,21 @@
+[Unit]
+Description=CheckMate Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=checkmate
+Group=checkmate
+WorkingDirectory=/home/checkmate/CheckMate
+Environment=PATH=/home/checkmate/CheckMate/venv/bin
+ExecStart=/home/checkmate/CheckMate/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=checkmate-bot
+
+[Install]
+WantedBy=multi-user.target 
