@@ -44,7 +44,7 @@ def setup_logging():
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
         level=logging.INFO,
         handlers=[
-            logging.FileHandler("checkmate.log"),
+            logging.FileHandler("/app/logs/checkmate.log"),
             logging.StreamHandler()
         ]
     )
