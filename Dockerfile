@@ -30,4 +30,4 @@ USER checkmate
 EXPOSE 8443
 
 # Команда запуска
-CMD ["python", "webhook_server.py"] 
+CMD ["python", "main.py"]
