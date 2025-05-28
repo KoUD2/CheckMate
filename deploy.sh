@@ -17,6 +17,22 @@ check_env_vars() {
     echo "✅ Все обязательные переменные окружения установлены"
 }
 
+check_docker_tools() {
+    if ! command -v docker &> /dev/null; then
+        echo "❌ Docker не установлен"
+        exit 1
+    fi
+
+    if ! docker compose version &> /dev/null; then
+        echo "❌ Docker Compose (v2) не найден"
+        echo "   Установите последнюю версию Docker и попробуйте снова"
+        exit 1
+    fi
+
+    echo "✅ $(docker --version)"
+    echo "✅ Docker Compose $(docker compose version | head -n 1)"
+}
+
 # Проверяем наличие .env файла
 if [ ! -f .env ]; then
     echo "⚠️  Файл .env не найден. Создайте его на основе env.example"
@@ -30,29 +46,30 @@ source .env
 
 # Проверяем переменные
 check_env_vars
+check_docker_tools
 
 echo "🛠️  Останавливаем старые контейнеры..."
-docker-compose down --remove-orphans || true
+docker compose down --remove-orphans || true
 
 echo "🏗️  Собираем новый образ..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 echo "📦 Создаем необходимые директории..."
 mkdir -p logs
 
 echo "🚀 Запускаем сервис..."
-docker-compose up -d
+docker compose up -d
 
 echo "⏳ Ждем запуска сервиса..."
 sleep 10
 
 echo "🔍 Проверяем статус контейнера..."
-if docker-compose ps | grep -q "Up"; then
+if docker compose ps | grep -q "Up"; then
     echo "✅ Контейнер запущен успешно"
 else
     echo "❌ Ошибка запуска контейнера"
     echo "📋 Логи контейнера:"
-    docker-compose logs --tail=20
+    docker compose logs --tail=20
     exit 1
 fi
 
@@ -65,16 +82,16 @@ else
 fi
 
 echo "📊 Информация о запущенном сервисе:"
-docker-compose ps
+docker compose ps
 
 echo "📋 Последние логи:"
-docker-compose logs --tail=10
+docker compose logs --tail=10
 
 echo ""
 echo "🎉 Деплой завершен успешно!"
 echo ""
 echo "📡 Сервис доступен по адресу: http://localhost:8443"
 echo "🏥 Health check: http://localhost:8443/health"
-echo "📋 Просмотр логов: docker-compose logs -f"
-echo "🛑 Остановка сервиса: docker-compose down"
-echo "" 
+echo "📋 Просмотр логов: docker compose logs -f"
+echo "🛑 Остановка сервиса: docker compose down"
+echo ""
