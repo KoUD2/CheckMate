@@ -113,7 +113,7 @@ async def create_payment_link(user_id: int, amount: float = 149.00) -> str:
             "description": f"Оплата подписки пользователем {user_id}",
             "receipt": {
                 "customer": {
-                    "email": "user@example.com"
+                    "email": "konstantinudod@comncourse.com"
                 },
                 "items": [
                     {
