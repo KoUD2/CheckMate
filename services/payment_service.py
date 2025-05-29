@@ -9,14 +9,24 @@ from yookassa import Configuration, Payment
 # Импортируем хранилище подписок из payment_callbacks
 from services.payment_callbacks import USER_SUBSCRIPTIONS, get_all_active_subscriptions
 
+# Импортируем конфигурацию YooKassa из config.py
+from config import YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY
+
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-# Настройка API Юкассы
-YOOKASSA_API_KEY = "test_oqu9vEtaRtFtuDFnCyUDblip-i9Ceb-EV5NDtQ4PHVg"
-YOOKASSA_SHOP_ID = "1035098"  # Используем тестовый магазин
-Configuration.account_id = YOOKASSA_SHOP_ID
-Configuration.secret_key = YOOKASSA_API_KEY
+# Настройка API Юкассы из переменных окружения
+if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
+    Configuration.account_id = YOOKASSA_SHOP_ID
+    Configuration.secret_key = YOOKASSA_SECRET_KEY
+    logger.info(f"YooKassa настроена с ID магазина: {YOOKASSA_SHOP_ID}")
+else:
+    # Fallback на тестовые ключи если переменные не заданы
+    YOOKASSA_API_KEY = "test_oqu9vEtaRtFtuDFnCyUDblip-i9Ceb-EV5NDtQ4PHVg"
+    YOOKASSA_SHOP_ID_FALLBACK = "1035098"
+    Configuration.account_id = YOOKASSA_SHOP_ID_FALLBACK
+    Configuration.secret_key = YOOKASSA_API_KEY
+    logger.warning("YooKassa использует тестовые ключи! Добавьте YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY в .env файл")
 
 class SubscriptionStatus:
     EXPIRED = "expired"

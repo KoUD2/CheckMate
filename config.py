@@ -47,4 +47,17 @@ def setup_logging():
             logging.StreamHandler()
         ]
     )
-    return logging.getLogger(__name__) 
+    logger = logging.getLogger(__name__)
+    
+    # Логируем конфигурацию для диагностики (без секретных данных)
+    logger.info(f"=== Конфигурация CheckMate ===")
+    logger.info(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'не задана')}")
+    logger.info(f"WEBHOOK_URL: {WEBHOOK_URL or 'не задана'}")
+    logger.info(f"WEBHOOK_HOST: {WEBHOOK_HOST}")
+    logger.info(f"WEBHOOK_PORT: {WEBHOOK_PORT}")
+    logger.info(f"API_BASE_URL: {API_BASE_URL}")
+    logger.info(f"YOOKASSA_SHOP_ID: {'задан' if YOOKASSA_SHOP_ID else 'НЕ ЗАДАН'}")
+    logger.info(f"YOOKASSA_SECRET_KEY: {'задан' if YOOKASSA_SECRET_KEY else 'НЕ ЗАДАН'}")
+    logger.info(f"===========================")
+    
+    return logger 
