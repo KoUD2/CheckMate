@@ -99,10 +99,10 @@ async def create_payment_link(user_id: int, amount: float = 149.00) -> str:
         # Генерируем уникальный идентификатор платежа
         idempotence_key = str(uuid.uuid4())
         
-        # Создаем платеж в Юкассе
-        payment = Payment.create({
+        # Данные для создания платежа
+        payment_data = {
             "amount": {
-                "value": amount,
+                "value": f"{amount:.2f}",
                 "currency": "RUB"
             },
             "confirmation": {
@@ -112,18 +112,35 @@ async def create_payment_link(user_id: int, amount: float = 149.00) -> str:
             "capture": True,
             "description": f"Оплата подписки пользователем {user_id}",
             "metadata": {
-                "user_id": user_id
+                "user_id": str(user_id)
             }
-        }, idempotence_key)
+        }
+        
+        # Логируем данные для отладки (без секретных ключей)
+        logger.info(f"Создание платежа для пользователя {user_id}")
+        logger.info(f"Сумма: {amount:.2f} RUB")
+        logger.info(f"Idempotence key: {idempotence_key}")
+        
+        # Создаем платеж в Юкассе
+        payment = Payment.create(payment_data, idempotence_key)
         
         # Получаем URL для оплаты
         confirmation_url = payment.confirmation.confirmation_url
         
         # Логируем информацию о созданном платеже
         logger.info(f"Создан платеж для пользователя {user_id}: ID платежа {payment.id}")
+        logger.info(f"URL для оплаты: {confirmation_url}")
         
         return confirmation_url
     except Exception as e:
-        logger.error(f"Ошибка при создании платежа: {e}")
+        # Детальное логирование ошибки
+        logger.error(f"Ошибка при создании платежа для пользователя {user_id}: {e}")
+        logger.error(f"Тип ошибки: {type(e).__name__}")
+        
+        # Если это HTTP ошибка, логируем детали
+        if hasattr(e, 'response'):
+            logger.error(f"HTTP статус: {e.response.status_code}")
+            logger.error(f"Ответ сервера: {e.response.text}")
+        
         # В случае ошибки возвращаем заглушку
         return f"https://yookassa.ru/checkout/payment?user_id={user_id}" 
