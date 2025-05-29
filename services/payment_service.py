@@ -111,6 +111,24 @@ async def create_payment_link(user_id: int, amount: float = 149.00) -> str:
             },
             "capture": True,
             "description": f"Оплата подписки пользователем {user_id}",
+            "receipt": {
+                "customer": {
+                    "email": "user@example.com"
+                },
+                "items": [
+                    {
+                        "description": "Подписка CheckMate (1 месяц)",
+                        "quantity": "1.00",
+                        "amount": {
+                            "value": f"{amount:.2f}",
+                            "currency": "RUB"
+                        },
+                        "vat_code": "1",
+                        "payment_mode": "full_payment",
+                        "payment_subject": "service"
+                    }
+                ]
+            },
             "metadata": {
                 "user_id": str(user_id)
             }
