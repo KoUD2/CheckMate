@@ -370,7 +370,7 @@ async def can_user_proceed_with_check(tg_id: int) -> dict:
         dict: Словарь с ключами:
             - can_proceed (bool): True если пользователь может продолжить, False если нет
             - reason (str): Причина, если пользователь не может продолжить
-            - free_checks_left (int): Количество оставшихся бесплатных проверок
+            - FreeChecksLeft (int): Количество оставшихся бесплатных проверок
             - is_subscription_active (bool): Активна ли подписка
     """
     if not tg_id:
@@ -378,7 +378,30 @@ async def can_user_proceed_with_check(tg_id: int) -> dict:
         return {"can_proceed": False, "reason": "Ошибка идентификации пользователя"}
 
     try:
-        # Получаем данные о пользователе
+        # Сначала проверяем локальные подписки (активные платежи)
+        from services.payment_callbacks import get_all_active_subscriptions
+        from datetime import datetime
+        
+        local_subscriptions = get_all_active_subscriptions()
+        local_subscription = local_subscriptions.get(tg_id)
+        
+        is_subscription_active = False
+        
+        if local_subscription and local_subscription.get("is_active"):
+            # Проверяем не истекла ли локальная подписка
+            expiry_date = local_subscription.get("expiry_date")
+            if expiry_date and expiry_date > datetime.now():
+                is_subscription_active = True
+                logger.info(f"Найдена активная локальная подписка для пользователя {tg_id}")
+                
+                # Если есть активная локальная подписка, пользователь может продолжить
+                return {
+                    "can_proceed": True,
+                    "FreeChecksLeft": 0,  # При активной подписке не важно
+                    "is_subscription_active": True
+                }
+
+        # Если локальной подписки нет, проверяем API
         user_data = await get_user_subscription(tg_id)
 
         if not user_data:
@@ -386,33 +409,33 @@ async def can_user_proceed_with_check(tg_id: int) -> dict:
             return {"can_proceed": False, "reason": "Не удалось получить данные пользователя"}
 
         # Извлекаем нужные поля
-        free_checks_left = user_data.get("FreeChecksLeft", 0)
-        is_active = user_data.get("IsActive", False)
+        FreeChecksLeft = user_data.get("FreeChecksLeft", 0)
+        api_is_active = user_data.get("IsActive", False)
 
-        logger.info(f"Проверка пользователя {tg_id}: FreeChecksLeft={free_checks_left}, IsActive={is_active}")
+        logger.info(f"Проверка пользователя {tg_id}: FreeChecksLeft={FreeChecksLeft}, API IsActive={api_is_active}, Local Active={is_subscription_active}")
 
         # Проверяем условия
-        if is_active:
-            # Если подписка активна, пользователь всегда может продолжить
+        if api_is_active:
+            # Если подписка активна в API, пользователь всегда может продолжить
             return {
                 "can_proceed": True,
-                "free_checks_left": free_checks_left,
-                "is_subscription_active": is_active
+                "FreeChecksLeft": FreeChecksLeft,
+                "is_subscription_active": True
             }
-        elif free_checks_left > 0:
+        elif FreeChecksLeft > 0:
             # Если подписка неактивна, но есть бесплатные проверки
             return {
                 "can_proceed": True,
-                "free_checks_left": free_checks_left,
-                "is_subscription_active": is_active
+                "FreeChecksLeft": FreeChecksLeft,
+                "is_subscription_active": False
             }
         else:
             # Если подписка неактивна и нет бесплатных проверок
             return {
                 "can_proceed": False,
                 "reason": "Закончились бесплатные проверки. Необходимо оформить подписку",
-                "free_checks_left": free_checks_left,
-                "is_subscription_active": is_active
+                "FreeChecksLeft": FreeChecksLeft,
+                "is_subscription_active": False
             }
 
     except Exception as e:

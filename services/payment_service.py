@@ -79,15 +79,15 @@ def format_subscription_message(subscription_data: Dict[str, Any]) -> str:
     """Форматирует сообщение о статусе подписки"""
     if subscription_data["status"] == SubscriptionStatus.ACTIVE:
         if subscription_data["days_left"] == 0:
-            return "Ваша подписка истекает сегодня."
+            return "Ваша подписка истекает сегодня"
         elif subscription_data["days_left"] == 1:
-            return "До истечения подписки остался 1 день."
+            return "До истечения подписки остался 1 день"
         elif subscription_data["days_left"] < 5:
-            return f"До истечения подписки осталось: {subscription_data['days_left']} дня."
+            return f"До истечения подписки осталось: {subscription_data['days_left']} дня"
         else:
-            return f"До истечения подписки осталось: {subscription_data['days_left']} дней."
+            return f"До истечения подписки осталось: {subscription_data['days_left']} дней"
     else:
-        return "Ваша подписка истекла."
+        return "Ваша подписка истекла"
 
 async def create_payment_link(user_id: int, amount: float = 149.00) -> str:
     """

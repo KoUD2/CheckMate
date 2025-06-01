@@ -59,7 +59,7 @@ async def get_task_description(update: Update, context: ContextTypes.DEFAULT_TYP
         return GRAPH_IMAGE
     else:
         await update.message.reply_text(
-            "📝Теперь пришли твою работу (решение задания)"
+            "📝Теперь пришли свою работу (решение задания)"
         )
         return TASK_SOLUTION
 
@@ -120,7 +120,7 @@ async def get_graph_image(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             
             # Запрашиваем решение
             await update.message.reply_text(
-                "📝Теперь пришли твою работу (решение задания)"
+                "📝Теперь пришли свою работу (решение задания)"
             )
             return TASK_SOLUTION
             
@@ -130,7 +130,7 @@ async def get_graph_image(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             
             # Все равно продолжаем диалог
             await update.message.reply_text(
-                "📝Теперь пришли твою работу (решение задания)"
+                "📝Теперь пришли свою работу (решение задания)"
             )
             return TASK_SOLUTION
     else:
@@ -152,11 +152,11 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if not check_permission.get("can_proceed", False):
         # Если пользователь не может продолжить, отправляем сообщение с причиной
         reason = check_permission.get("reason", "Неизвестная ошибка")
-        free_checks_left = check_permission.get("free_checks_left", 0)
+        FreeChecksLeft = check_permission.get("FreeChecksLeft", 0)
         
         await update.message.reply_text(
             f"❌ {reason}\n\n"
-            f"Бесплатных проверок осталось: {free_checks_left}\n\n"
+            f"Бесплатных проверок осталось: {FreeChecksLeft}\n\n"
             f"Для продолжения необходимо оформить подписку. Используйте команду /subscription"
         )
         return ConversationHandler.END
