@@ -2,6 +2,8 @@ import re
 import time
 import logging
 import os
+import asyncio
+import aiofiles
 import google.generativeai as genai
 from requests.exceptions import Timeout, ConnectionError
 from config import GEMINI_API_KEY
@@ -117,8 +119,8 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                     }
                     return "Ошибка проверки", error_msg, extra_info
                 
-                with open(prompt_path, "r", encoding="utf-8") as file:
-                    prompt_template = file.read()
+                async with aiofiles.open(prompt_path, "r", encoding="utf-8") as file:
+                    prompt_template = await file.read()
                 
                 # Подставляем данные пользователя в промпт
                 prompt = prompt_template.replace("[Текст задания из сообщения пользователя в телеграм]", task_description)
@@ -159,7 +161,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                         if attempt < max_retries - 1:
                             delay = retry_delay * (attempt + 1)
                             logger.warning(f"Таймаут при запросе к Gemini (промпт {i}), попытка {attempt+1}/{max_retries}. Ожидание {delay} секунд...")
-                            time.sleep(delay)
+                            await asyncio.sleep(delay)
                         else:
                             logger.error(f"Не удалось получить ответ от Gemini после {max_retries} попыток: {str(e)}")
                             raise
@@ -168,7 +170,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                         if attempt < max_retries - 1:
                             delay = retry_delay * (attempt + 1)
                             logger.warning(f"Повторная попытка {attempt+1}/{max_retries} через {delay} секунд...")
-                            time.sleep(delay)
+                            await asyncio.sleep(delay)
                         else:
                             raise
                 
@@ -338,8 +340,8 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                     logger.error(f"Файл промпта не найден: {prompt_path}")
                     return "Ошибка проверки", f"Файл промпта не найден: {prompt_path}"
                 
-                with open(prompt_path, "r", encoding="utf-8") as file:
-                    prompt_template = file.read()
+                async with aiofiles.open(prompt_path, "r", encoding="utf-8") as file:
+                    prompt_template = await file.read()
                 
                 # Подготавливаем информацию о графике, если есть
                 graph_info = ""
@@ -386,7 +388,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                         if attempt < max_retries - 1:
                             delay = retry_delay * (attempt + 1)
                             logger.warning(f"Таймаут при запросе к Gemini (промпт {i} для задания 38), попытка {attempt+1}/{max_retries}. Ожидание {delay} секунд...")
-                            time.sleep(delay)
+                            await asyncio.sleep(delay)
                         else:
                             logger.error(f"Не удалось получить ответ от Gemini после {max_retries} попыток: {str(e)}")
                             raise
@@ -395,7 +397,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                         if attempt < max_retries - 1:
                             delay = retry_delay * (attempt + 1)
                             logger.warning(f"Повторная попытка {attempt+1}/{max_retries} через {delay} секунд...")
-                            time.sleep(delay)
+                            await asyncio.sleep(delay)
                         else:
                             raise
                 
@@ -502,7 +504,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
             
             # Объединяем все ответы с явным обозначением разделов
             combined_response = scores_info
-            combined_response += "📝 КРИТЕРИЙ 1: РЕШЕНИЕ КОММУНИКАТИВНОЙ ЗАДАЧИ\n\n" + all_responses[0] + "\n\n"
+            combined_response += "�� КРИТЕРИЙ 1: РЕШЕНИЕ КОММУНИКАТИВНОЙ ЗАДАЧИ\n\n" + all_responses[0] + "\n\n"
             combined_response += "🔠 КРИТЕРИЙ 2: ОРГАНИЗАЦИЯ ТЕКСТА\n\n" + all_responses[1] + "\n\n"
             combined_response += "📚 КРИТЕРИЙ 3: ЯЗЫКОВОЕ ОФОРМЛЕНИЕ (ЛЕКСИКА)\n\n" + all_responses[2] + "\n\n"
             combined_response += "📖 КРИТЕРИЙ 4: ЯЗЫКОВОЕ ОФОРМЛЕНИЕ (ГРАММАТИКА)\n\n" + all_responses[3] + "\n\n"
@@ -552,7 +554,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                     if attempt < max_retries - 1:
                         delay = retry_delay * (attempt + 1)
                         logger.warning(f"Таймаут при запросе к Gemini, попытка {attempt+1}/{max_retries}. Ожидание {delay} секунд...")
-                        time.sleep(delay)
+                        await asyncio.sleep(delay)
                     else:
                         logger.error(f"Не удалось получить ответ от Gemini после {max_retries} попыток: {str(e)}")
                         raise
@@ -561,7 +563,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                     if attempt < max_retries - 1:
                         delay = retry_delay * (attempt + 1)
                         logger.warning(f"Повторная попытка {attempt+1}/{max_retries} через {delay} секунд...")
-                        time.sleep(delay)
+                        await asyncio.sleep(delay)
                     else:
                         raise
             

@@ -91,7 +91,7 @@ async def get_graph_image(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             
             # Загружаем изображение в MinIO
             await processing_message.edit_text("🔍 Конвертирую изображение в base64...")
-            image_base64 = convert_image_to_base64(file_path)
+            image_base64 = await convert_image_to_base64(file_path)
             
             if image_base64:
                 # Сохраняем base64 изображения в контексте пользователя

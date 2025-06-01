@@ -1,11 +1,12 @@
 import logging
 import base64
+import aiofiles
 from typing import Optional
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-def convert_image_to_base64(image_path: str) -> Optional[str]:
+async def convert_image_to_base64(image_path: str) -> Optional[str]:
     """
     Конвертирует изображение в base64 строку в формате data:image/jpeg;base64,...
     
@@ -19,8 +20,8 @@ def convert_image_to_base64(image_path: str) -> Optional[str]:
         logger.info(f"Конвертируем изображение {image_path} в base64")
         
         # Читаем изображение как бинарные данные
-        with open(image_path, 'rb') as image_file:
-            image_data = image_file.read()
+        async with aiofiles.open(image_path, 'rb') as image_file:
+            image_data = await image_file.read()
         
         # Конвертируем в base64
         base64_data = base64.b64encode(image_data).decode('utf-8')
