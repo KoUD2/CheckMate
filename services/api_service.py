@@ -194,8 +194,10 @@ async def update_user_subscription(tg_id: int, days: int = 30) -> bool:
         subscription_url = f"{UPDATE_SUBSCRIPTION_URL}/{tg_id}/subscription"
 
         # Создаем дату окончания подписки (текущая дата + указанное количество дней)
-        # RFC3339 формат с Z в конце (UTC)
-        sub_until = (datetime.now() + timedelta(days=days)).isoformat() + "Z"
+        # RFC3339 формат с правильным timezone
+        from datetime import timezone
+        sub_until_date = datetime.now(timezone.utc) + timedelta(days=days)
+        sub_until = sub_until_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         # Подготавливаем данные для запроса
         subscription_data = {
@@ -203,21 +205,29 @@ async def update_user_subscription(tg_id: int, days: int = 30) -> bool:
             "SubUntil": sub_until
         }
 
-        logger.info(f"Отправляем запрос на обновление подписки для пользователя {tg_id}: {subscription_data}")
+        logger.info(f"Обновление подписки для пользователя {tg_id}")
+        logger.info(f"URL: {subscription_url}")
+        logger.info(f"Данные: {subscription_data}")
 
         # Отправляем PATCH запрос с отключенной проверкой SSL
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
             async with session.patch(subscription_url, json=subscription_data) as response:
+                # Логируем ответ сервера
+                response_text = await response.text()
+                logger.info(f"Статус ответа: {response.status}")
+                logger.info(f"Ответ сервера: {response_text}")
+                
                 # Проверяем статус ответа
                 if response.status in [200, 201, 204]:
-                    logger.info(f"Подписка пользователя {tg_id} успешно обновлена до {sub_until}")
+                    logger.info(f"✅ Подписка пользователя {tg_id} успешно обновлена до {sub_until}")
                     return True
                 else:
-                    response_text = await response.text()
-                    logger.error(f"Ошибка при обновлении подписки пользователя {tg_id}: {response.status}, {response_text}")
+                    logger.error(f"❌ Ошибка при обновлении подписки пользователя {tg_id}: {response.status}")
+                    logger.error(f"Ответ сервера: {response_text}")
                     return False
     except Exception as e:
-        logger.error(f"Ошибка при обновлении подписки пользователя {tg_id}: {e}")
+        logger.error(f"❌ Исключение при обновлении подписки пользователя {tg_id}: {e}")
+        logger.error(f"Тип ошибки: {type(e).__name__}")
         return False
 
 async def increment_user_free_checks(tg_id: int) -> bool:

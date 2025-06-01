@@ -30,76 +30,80 @@ def get_all_active_subscriptions():
     """Возвращает все активные подписки (для отладки)"""
     return USER_SUBSCRIPTIONS
 
-async def process_payment_notification(raw_data):
+async def process_payment_notification(webhook_data: dict) -> bool:
     """
-    Обработка уведомления от Юкассы о статусе платежа.
+    Обрабатывает уведомления о платежах от ЮKassa.
     
     Args:
-        raw_data: Сырые данные от вебхука
+        webhook_data: Данные вебхука от ЮKassa
+        
+    Returns:
+        bool: True если обработка успешна, False в противном случае
     """
     try:
-        # Логируем полученные данные для отладки
-        logger.info(f"Получены данные о платеже: {json.dumps(raw_data, ensure_ascii=False)}")
+        logger.info(f"🔄 Обработка webhook данных: {webhook_data}")
         
-        # Парсим уведомление от Юкассы
-        notification_object = WebhookNotification(raw_data)
-        payment = notification_object.object
-        
-        # Получаем данные платежа
-        payment_id = payment.id
-        status = payment.status
-        metadata = payment.metadata
-        user_id = metadata.get('user_id') if metadata else None
-        
-        logger.info(f"Получено уведомление о платеже {payment_id}, статус: {status}, пользователь: {user_id}")
-        
-        # Проверка конкретного пользователя из скриншота 
-        if user_id == "1054927360" or user_id == 1054927360:
-            logger.info(f"Обрабатываем платеж для пользователя из скриншота: {user_id}")
-            # Принудительно активируем подписку для пользователя из скриншота
-            user_id = int(user_id)
-            
-            # Обновляем подписку в API
-            await update_user_subscription(user_id)
-            
-            # Для локального хранения также активируем подписку
-            activate_subscription(user_id)
-            
-            # Отправляем уведомление пользователю
-            await notify_user_payment_success(user_id)
-            return True
-            
-        if status == 'succeeded' and user_id:
-            # Успешная оплата, активируем подписку
-            user_id = int(user_id)
-            
-            # Обновляем подписку в API
-            api_success = await update_user_subscription(user_id)
-            
-            if api_success:
-                logger.info(f"Подписка успешно обновлена на сервере для пользователя {user_id}")
-            else:
-                logger.warning(f"Не удалось обновить подписку на сервере для пользователя {user_id}")
-            
-            # Для локального хранения также активируем подписку
-            activate_subscription(user_id)
-            logger.info(f"Подписка активирована для пользователя {user_id}")
-            
-            # Отправляем уведомление пользователю
-            await notify_user_payment_success(user_id)
-            
-            return True
-        elif status in ['canceled', 'pending', 'waiting_for_capture']:
-            # Обрабатываем другие статусы платежа
-            if status == 'canceled' and user_id:
-                # Уведомляем пользователя об отмене платежа
-                await notify_user_payment_canceled(int(user_id))
-            
-            logger.warning(f"Платеж {payment_id} не обработан, статус: {status}")
+        # Проверяем тип события
+        event_type = webhook_data.get("event")
+        if not event_type:
+            logger.error("❌ Отсутствует поле event в webhook данных")
             return False
             
+        logger.info(f"📧 Тип события: {event_type}")
+
+        # Обрабатываем только успешные платежи
+        if event_type != "payment.succeeded":
+            logger.info(f"ℹ️ Событие {event_type} не требует обработки")
+            return True
+
+        # Извлекаем данные о платеже
+        payment_object = webhook_data.get("object", {})
+        payment_id = payment_object.get("id")
+        payment_status = payment_object.get("status")
+        payment_metadata = payment_object.get("metadata", {})
+        user_id = payment_metadata.get("user_id")
+
+        logger.info(f"💳 Payment ID: {payment_id}")
+        logger.info(f"📊 Payment Status: {payment_status}")
+        logger.info(f"👤 User ID из metadata: {user_id}")
+
+        if not user_id:
+            logger.error("❌ Отсутствует user_id в metadata платежа")
+            return False
+
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            logger.error(f"❌ Некорректный user_id: {user_id}")
+            return False
+
+        logger.info(f"🎯 Начинаем обработку успешного платежа для пользователя {user_id}")
+
+        # Обновляем подписку через API
+        logger.info(f"🌐 Обновляем подписку через API...")
+        api_success = await update_user_subscription(user_id, 30)
+        
+        if api_success:
+            logger.info(f"✅ Подписка через API успешно обновлена для пользователя {user_id}")
+        else:
+            logger.error(f"❌ Не удалось обновить подписку через API для пользователя {user_id}")
+
+        # Активируем подписку локально
+        logger.info(f"🏠 Активируем подписку локально...")
+        activate_subscription(user_id, 30)
+        logger.info(f"✅ Подписка локально активирована для пользователя {user_id}")
+
+        # Отправляем уведомление пользователю
+        logger.info(f"📤 Отправляем уведомление пользователю...")
+        await notify_user_payment_success(user_id)
+        logger.info(f"✅ Уведомление отправлено пользователю {user_id}")
+
+        logger.info(f"🎉 Платеж успешно обработан для пользователя {user_id}")
+        return True
+
     except Exception as e:
-        logger.error(f"Ошибка при обработке уведомления о платеже: {e}")
+        logger.error(f"❌ Ошибка при обработке уведомления о платеже: {e}")
+        logger.error(f"🔍 Тип ошибки: {type(e).__name__}")
         return False
 
 def activate_subscription(user_id: int, period: int = SubscriptionPeriod.ONE_MONTH):
