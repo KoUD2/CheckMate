@@ -64,6 +64,15 @@ async def register_user(tg_id: int, username: str) -> bool:
                 # Проверяем статус ответа
                 if response.status == 200:
                     logger.info(f"Пользователь {tg_id} успешно зарегистрирован")
+                    free_checks_added = await change_user_free_checks(tg_id, 2)
+                    if free_checks_added:
+                        logger.info(
+                            f"Пользователю {tg_id} начислено 2 бесплатные проверки"
+                        )
+                    else:
+                        logger.warning(
+                            f"Не удалось начислить бесплатные проверки пользователю {tg_id}"
+                        )
                     return True
                 elif response.status == 400:
                     # Проверяем, является ли ошибка результатом того, что пользователь уже существует
@@ -259,6 +268,39 @@ async def increment_user_free_checks(tg_id: int) -> bool:
                     return False
     except Exception as e:
         logger.error(f"Ошибка при обновлении счетчика бесплатных проверок пользователя {tg_id}: {e}")
+        return False
+
+async def change_user_free_checks(tg_id: int, amount: int) -> bool:
+    """Изменяет счетчик бесплатных проверок пользователя на указанную величину."""
+    if not tg_id:
+        logger.error("Ошибка при обновлении счетчика бесплатных проверок: не указан tg_id")
+        return False
+
+    try:
+        free_checks_url = f"{UPDATE_FREE_CHECKS_URL}/{tg_id}/free_checks"
+        free_checks_data = {
+            "FreeChecksLeft": amount
+        }
+        logger.info(
+            f"Отправляем запрос на изменение счетчика бесплатных проверок для пользователя {tg_id} на {amount}"
+        )
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_context)) as session:
+            async with session.patch(free_checks_url, json=free_checks_data) as response:
+                if response.status in [200, 201, 204]:
+                    logger.info(
+                        f"Счетчик бесплатных проверок пользователя {tg_id} успешно изменен на {amount}"
+                    )
+                    return True
+                else:
+                    response_text = await response.text()
+                    logger.error(
+                        f"Ошибка при изменении счетчика бесплатных проверок пользователя {tg_id}: {response.status}, {response_text}"
+                    )
+                    return False
+    except Exception as e:
+        logger.error(
+            f"Ошибка при изменении счетчика бесплатных проверок пользователя {tg_id}: {e}"
+        )
         return False
 
 async def decrement_user_free_checks(tg_id: int) -> bool:
