@@ -124,6 +124,7 @@ app.middlewares.append(error_middleware)
 # Добавляем маршруты
 app.router.add_get('/health', health_check)
 app.router.add_post('/webhooks/yookassa', yookassa_webhook)
+app.router.add_post('/payment-webhook', yookassa_webhook)
 app.router.add_get('/test/payment', test_payment_webhook)
 app.router.add_get('/activate/subscription', activate_subscription_manual)
 
