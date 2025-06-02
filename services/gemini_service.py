@@ -504,7 +504,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
             
             # Объединяем все ответы с явным обозначением разделов
             combined_response = scores_info
-            combined_response += "�� КРИТЕРИЙ 1: РЕШЕНИЕ КОММУНИКАТИВНОЙ ЗАДАЧИ\n\n" + all_responses[0] + "\n\n"
+            combined_response += "📝 КРИТЕРИЙ 1: РЕШЕНИЕ КОММУНИКАТИВНОЙ ЗАДАЧИ\n\n" + all_responses[0] + "\n\n"
             combined_response += "🔠 КРИТЕРИЙ 2: ОРГАНИЗАЦИЯ ТЕКСТА\n\n" + all_responses[1] + "\n\n"
             combined_response += "📚 КРИТЕРИЙ 3: ЯЗЫКОВОЕ ОФОРМЛЕНИЕ (ЛЕКСИКА)\n\n" + all_responses[2] + "\n\n"
             combined_response += "📖 КРИТЕРИЙ 4: ЯЗЫКОВОЕ ОФОРМЛЕНИЕ (ГРАММАТИКА)\n\n" + all_responses[3] + "\n\n"

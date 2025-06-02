@@ -9,7 +9,7 @@ from handlers.conversation_handlers import (
     get_task_solution, show_analysis, cancel, new_task, feedback
 )
 from handlers.subscription_handlers import subscription_command
-from handlers.start_handler import start_command, start_callback_handler
+from handlers.start_handler import start_callback_handler
 from handlers.feedback_handlers import rating_feedback
 from webhook_server import run_webhook_server
 from services.payment_callbacks import setup_bot
@@ -58,7 +58,6 @@ def main() -> None:
     application.add_handler(CommandHandler("feedback", feedback))
     application.add_handler(CommandHandler("subscription", subscription_command))
     
-    application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CallbackQueryHandler(start_callback_handler, pattern="^task_"))
 
     application.add_handler(CallbackQueryHandler(rating_feedback, pattern="^rating_"))

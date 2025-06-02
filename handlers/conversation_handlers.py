@@ -28,7 +28,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Выбери задание", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "👋 Привет! Я бот CheckMate, который поможет проверить твое решение заданий ЕГЭ по английскому.\n\n"
+        "Выбери задание:",
+        reply_markup=reply_markup
+    )
 
     return CHOOSE_TASK
 
