@@ -47,7 +47,8 @@ def main() -> None:
         },
         fallbacks=[
             CommandHandler("cancel", cancel),
-            CommandHandler("feedback", feedback)
+            CommandHandler("feedback", feedback),
+            CommandHandler("new", new_task)
         ],
     )
     
