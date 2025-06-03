@@ -101,7 +101,7 @@ async def get_graph_image(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             # Загружаем изображение в MinIO
             await processing_message.edit_text("🔍 Конвертирую изображение в base64...")
             image_base64 = await convert_image_to_base64(file_path)
-            
+
             if image_base64:
                 # Сохраняем base64 изображения в контексте пользователя
                 context.user_data['table_image_url'] = image_base64
@@ -161,11 +161,11 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if not check_permission.get("can_proceed", False):
         # Если пользователь не может продолжить, отправляем сообщение с причиной
         reason = check_permission.get("reason", "Неизвестная ошибка")
-        FreeChecksLeft = check_permission.get("FreeChecksLeft", 0)
+        freeChecksLeft = check_permission.get("freeChecksLeft", 0)
 
         await update.message.reply_text(
             f"❌ {reason}\n\n"
-            f"Бесплатных проверок осталось: {FreeChecksLeft}\n\n"
+            f"Бесплатных проверок осталось: {freeChecksLeft}\n\n"
             f"Для продолжения необходимо оформить подписку. Используйте команду /subscription"
         )
         return ConversationHandler.END
