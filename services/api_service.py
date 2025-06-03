@@ -250,7 +250,7 @@ async def increment_user_free_checks(tg_id: int) -> bool:
 
         # Подготавливаем данные для запроса - увеличиваем на 1
         free_checks_data = {
-            "freeChecksLeft": 1
+            "FreeChecksLeft": 1
         }
 
         logger.info(f"Отправляем запрос на обновление счетчика бесплатных проверок для пользователя {tg_id}")
@@ -279,7 +279,7 @@ async def change_user_free_checks(tg_id: int, amount: int) -> bool:
     try:
         free_checks_url = f"{UPDATE_FREE_CHECKS_URL}/{tg_id}/free_checks"
         free_checks_data = {
-            "freeChecksLeft": amount
+            "FreeChecksLeft": amount
         }
         logger.info(
             f"Отправляем запрос на изменение счетчика бесплатных проверок для пользователя {tg_id} на {amount}"
@@ -326,7 +326,7 @@ async def decrement_user_free_checks(tg_id: int) -> bool:
             logger.error(f"Не удалось получить данные пользователя {tg_id} для уменьшения счетчика")
             return False
 
-        current_free_checks = user_data.get("freeChecksLeft", 0)
+        current_free_checks = user_data.get("FreeChecksLeft", 0)
 
         # Если счетчик уже равен 0, не уменьшаем
         if current_free_checks <= 0:
@@ -338,7 +338,7 @@ async def decrement_user_free_checks(tg_id: int) -> bool:
 
         # Подготавливаем данные для запроса - уменьшаем на 1
         free_checks_data = {
-            "freeChecksLeft": -1
+            "FreeChecksLeft": -1
         }
 
         logger.info(f"Отправляем запрос на уменьшение счетчика бесплатных проверок для пользователя {tg_id} с {current_free_checks} до {current_free_checks - 1}")
@@ -370,7 +370,7 @@ async def can_user_proceed_with_check(tg_id: int) -> dict:
         dict: Словарь с ключами:
             - can_proceed (bool): True если пользователь может продолжить, False если нет
             - reason (str): Причина, если пользователь не может продолжить
-            - freeChecksLeft (int): Количество оставшихся бесплатных проверок
+            - FreeChecksLeft (int): Количество оставшихся бесплатных проверок
             - is_subscription_active (bool): Активна ли подписка
     """
     if not tg_id:
@@ -397,7 +397,7 @@ async def can_user_proceed_with_check(tg_id: int) -> dict:
                 # Если есть активная локальная подписка, пользователь может продолжить
                 return {
                     "can_proceed": True,
-                    "freeChecksLeft": 0,  # При активной подписке не важно
+                    "FreeChecksLeft": 0,  # При активной подписке не важно
                     "is_subscription_active": True
                 }
 
@@ -409,24 +409,24 @@ async def can_user_proceed_with_check(tg_id: int) -> dict:
             return {"can_proceed": False, "reason": "Не удалось получить данные пользователя"}
 
         # Извлекаем нужные поля
-        freeChecksLeft = user_data.get("freeChecksLeft", 0)
+        FreeChecksLeft = user_data.get("FreeChecksLeft", 0)
         api_is_active = user_data.get("IsActive", False)
 
-        logger.info(f"Проверка пользователя {tg_id}: freeChecksLeft={freeChecksLeft}, API IsActive={api_is_active}, Local Active={is_subscription_active}")
+        logger.info(f"Проверка пользователя {tg_id}: FreeChecksLeft={FreeChecksLeft}, API IsActive={api_is_active}, Local Active={is_subscription_active}")
 
         # Проверяем условия
         if api_is_active:
             # Если подписка активна в API, пользователь всегда может продолжить
             return {
                 "can_proceed": True,
-                "freeChecksLeft": freeChecksLeft,
+                "FreeChecksLeft": FreeChecksLeft,
                 "is_subscription_active": True
             }
-        elif freeChecksLeft > 0:
+        elif FreeChecksLeft > 0:
             # Если подписка неактивна, но есть бесплатные проверки
             return {
                 "can_proceed": True,
-                "freeChecksLeft": freeChecksLeft,
+                "FreeChecksLeft": FreeChecksLeft,
                 "is_subscription_active": False
             }
         else:
@@ -434,7 +434,7 @@ async def can_user_proceed_with_check(tg_id: int) -> dict:
             return {
                 "can_proceed": False,
                 "reason": "Закончились бесплатные проверки. Необходимо оформить подписку",
-                "freeChecksLeft": freeChecksLeft,
+                "FreeChecksLeft": FreeChecksLeft,
                 "is_subscription_active": False
             }
 
