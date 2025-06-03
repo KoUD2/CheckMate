@@ -161,11 +161,11 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if not check_permission.get("can_proceed", False):
         # Если пользователь не может продолжить, отправляем сообщение с причиной
         reason = check_permission.get("reason", "Неизвестная ошибка")
-        freeChecksLeft = check_permission.get("freeChecksLeft", 0)
+        FreeChecksLeft = check_permission.get("FreeChecksLeft", 0)
 
         await update.message.reply_text(
             f"❌ {reason}\n\n"
-            f"Бесплатных проверок осталось: {freeChecksLeft}\n\n"
+            f"Бесплатных проверок осталось: {FreeChecksLeft}\n\n"
             f"Для продолжения необходимо оформить подписку. Используйте команду /subscription"
         )
         return ConversationHandler.END
