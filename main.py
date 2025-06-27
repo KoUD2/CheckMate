@@ -1,6 +1,7 @@
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters, ConversationHandler
 import os
 import threading
+import asyncio
 from telegram.error import Conflict, NetworkError
 
 from config import TELEGRAM_BOT_TOKEN, CHOOSE_TASK, TASK_DESCRIPTION, GRAPH_IMAGE, TASK_SOLUTION, SHOW_ANALYSIS, setup_logging
@@ -11,8 +12,10 @@ from handlers.conversation_handlers import (
 from handlers.subscription_handlers import subscription_command
 from handlers.start_handler import start_callback_handler
 from handlers.feedback_handlers import rating_feedback
+from handlers.admin_handlers import clear_logs_command, log_stats_command, admin_help_command
 from webhook_server import run_webhook_server
 from services.payment_callbacks import setup_bot
+from services.log_cleaner_service import start_log_cleaner
 
 logger = setup_logging()
 
@@ -59,6 +62,11 @@ def main() -> None:
     application.add_handler(CommandHandler("feedback", feedback))
     application.add_handler(CommandHandler("subscription", subscription_command))
     
+    # Административные команды
+    application.add_handler(CommandHandler("clear_logs", clear_logs_command))
+    application.add_handler(CommandHandler("log_stats", log_stats_command))
+    application.add_handler(CommandHandler("admin_help", admin_help_command))
+    
     application.add_handler(CallbackQueryHandler(start_callback_handler, pattern="^task_"))
 
     application.add_handler(CallbackQueryHandler(rating_feedback, pattern="^rating_"))
@@ -66,6 +74,14 @@ def main() -> None:
     webhook_thread = threading.Thread(target=run_webhook_server, daemon=True)
     webhook_thread.start()
     logger.info("Запущен сервер для вебхуков Юкассы")
+
+    # Запускаем сервис автоматической очистки логов в фоновом режиме
+    log_cleaner_thread = threading.Thread(
+        target=lambda: asyncio.run(start_log_cleaner()), 
+        daemon=True
+    )
+    log_cleaner_thread.start()
+    logger.info("Запущен сервис автоматической очистки логов (каждые 2 дня)")
 
     setup_bot(application.bot)
 

@@ -1,5 +1,6 @@
 import logging
 import os
+from logging.handlers import TimedRotatingFileHandler
 from dotenv import load_dotenv
 
 # Загружаем переменные из .env файла
@@ -40,13 +41,35 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://checkmateai.ru")
 CHOOSE_TASK, TASK_DESCRIPTION, GRAPH_IMAGE, TASK_SOLUTION, CHECKING, SHOW_ANALYSIS = range(6)
 
 def setup_logging():
-    logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
-        level=logging.INFO,
-        handlers=[
-            logging.StreamHandler()
-        ]
+    # Создаем форматтер для логов
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    
+    # Создаем обработчик для файла с автоматической ротацией каждые 2 дня
+    file_handler = TimedRotatingFileHandler(
+        filename='checkmate.log',
+        when='D',           # Ротация по дням
+        interval=2,         # Каждые 2 дня
+        backupCount=0,      # Не сохранять старые файлы (полная очистка)
+        encoding='utf-8'
     )
+    file_handler.setFormatter(formatter)
+    
+    # Создаем обработчик для консоли
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    
+    # Настраиваем корневой логгер
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    
+    # Очищаем существующие обработчики (если есть)
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+    
+    # Добавляем наши обработчики
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    
     logger = logging.getLogger(__name__)
     
     # Логируем конфигурацию для диагностики (без секретных данных)
@@ -58,6 +81,7 @@ def setup_logging():
     logger.info(f"API_BASE_URL: {API_BASE_URL}")
     logger.info(f"YOOKASSA_SHOP_ID: {'задан' if YOOKASSA_SHOP_ID else 'НЕ ЗАДАН'}")
     logger.info(f"YOOKASSA_SECRET_KEY: {'задан' if YOOKASSA_SECRET_KEY else 'НЕ ЗАДАН'}")
+    logger.info(f"Логи настроены: файл обновляется каждые 2 дня с полной очисткой")
     logger.info(f"===========================")
     
     return logger 
