@@ -13,7 +13,7 @@ class LogCleanerService:
     def __init__(self, cleanup_interval_hours=48):  # 48 часов = 2 дня
         self.cleanup_interval_hours = cleanup_interval_hours
         self.cleanup_interval_seconds = cleanup_interval_hours * 3600
-        self.log_cleaner = LogCleaner()
+        self.log_cleaner = LogCleaner()  # Автоматически определит правильный путь
         self.logger = logging.getLogger(__name__)
         self.is_running = False
     

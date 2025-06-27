@@ -41,18 +41,38 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://checkmateai.ru")
 CHOOSE_TASK, TASK_DESCRIPTION, GRAPH_IMAGE, TASK_SOLUTION, CHECKING, SHOW_ANALYSIS = range(6)
 
 def setup_logging():
+    import shutil
+    
     # Создаем форматтер для логов
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     
+    # Проверяем и исправляем проблему с директорией вместо файла
+    log_path = 'checkmate.log'
+    if os.path.exists(log_path) and os.path.isdir(log_path):
+        print(f"⚠️  Обнаружена директория {log_path} вместо файла. Удаляем...")
+        try:
+            shutil.rmtree(log_path)
+            print(f"✅ Директория {log_path} удалена")
+        except Exception as e:
+            print(f"❌ Ошибка при удалении директории {log_path}: {e}")
+            # Используем альтернативный путь
+            log_path = 'logs/checkmate.log'
+            os.makedirs('logs', exist_ok=True)
+    
     # Создаем обработчик для файла с автоматической ротацией каждые 2 дня
-    file_handler = TimedRotatingFileHandler(
-        filename='checkmate.log',
-        when='D',           # Ротация по дням
-        interval=2,         # Каждые 2 дня
-        backupCount=0,      # Не сохранять старые файлы (полная очистка)
-        encoding='utf-8'
-    )
-    file_handler.setFormatter(formatter)
+    try:
+        file_handler = TimedRotatingFileHandler(
+            filename=log_path,
+            when='D',           # Ротация по дням
+            interval=2,         # Каждые 2 дня
+            backupCount=0,      # Не сохранять старые файлы (полная очистка)
+            encoding='utf-8'
+        )
+        file_handler.setFormatter(formatter)
+    except Exception as e:
+        print(f"❌ Ошибка при создании файлового обработчика: {e}")
+        print("📝 Используем только консольный вывод")
+        file_handler = None
     
     # Создаем обработчик для консоли
     console_handler = logging.StreamHandler()
@@ -67,7 +87,8 @@ def setup_logging():
         root_logger.removeHandler(handler)
     
     # Добавляем наши обработчики
-    root_logger.addHandler(file_handler)
+    if file_handler:
+        root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
     
     logger = logging.getLogger(__name__)

@@ -14,7 +14,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 class LogCleaner:
-    def __init__(self, log_file_path='checkmate.log', max_size_mb=10):
+    def __init__(self, log_file_path=None, max_size_mb=10):
+        # Автоматически определяем путь к лог-файлу
+        if log_file_path is None:
+            if os.path.exists('checkmate.log') and not os.path.isdir('checkmate.log'):
+                log_file_path = 'checkmate.log'
+            elif os.path.exists('logs/checkmate.log'):
+                log_file_path = 'logs/checkmate.log'
+            else:
+                # Создаем директорию logs если её нет
+                os.makedirs('logs', exist_ok=True)
+                log_file_path = 'logs/checkmate.log'
+        
         self.log_file_path = log_file_path
         self.max_size_mb = max_size_mb
         self.logger = logging.getLogger(__name__)

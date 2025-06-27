@@ -17,7 +17,6 @@ services:
       - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
     volumes:
       - ./logs:/app/logs
-      - ./checkmate.log:/app/checkmate.log
     healthcheck:
       test:
         [
