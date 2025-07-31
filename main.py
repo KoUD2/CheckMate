@@ -9,7 +9,7 @@ from handlers.conversation_handlers import (
     start, task_choice, get_task_description, get_graph_image, 
     get_task_solution, show_analysis, cancel, new_task, feedback
 )
-from handlers.subscription_handlers import subscription_command
+from handlers.subscription_handlers import subscription_command, promo_command
 from handlers.start_handler import start_callback_handler
 from handlers.feedback_handlers import rating_feedback
 from handlers.admin_handlers import clear_logs_command, log_stats_command, admin_help_command
@@ -61,6 +61,7 @@ def main() -> None:
 
     application.add_handler(CommandHandler("feedback", feedback))
     application.add_handler(CommandHandler("subscription", subscription_command))
+    application.add_handler(CommandHandler("promo", promo_command))
     
     # Административные команды
     application.add_handler(CommandHandler("clear_logs", clear_logs_command))

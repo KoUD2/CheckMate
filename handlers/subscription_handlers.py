@@ -5,11 +5,102 @@ from datetime import datetime, timedelta
 import re
 
 from services.payment_service import create_payment_link
-from services.api_service import get_user_subscription, calculate_days_left
-from services.payment_callbacks import get_all_active_subscriptions
+from services.api_service import get_user_subscription, calculate_days_left, update_user_subscription
+from services.payment_callbacks import get_all_active_subscriptions, activate_subscription
 
 # Настройка логирования
 logger = logging.getLogger(__name__)
+
+# Промокод и дата окончания действия
+PROMO_CODE = "TEACHY"
+PROMO_END_DATE = datetime(2025, 8, 9, 23, 59, 59)
+
+async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик команды /promo для активации промокода"""
+    user_id = update.effective_user.id
+    
+    # Проверяем, передан ли промокод
+    if not context.args:
+        await update.message.reply_text(
+            "❌ Пожалуйста, укажите промокод.\n\n"
+            "Использование: /promo <код>"
+        )
+        return
+    
+    promo_code = context.args[0].upper()
+    
+    # Проверяем, что промокод правильный
+    if promo_code != PROMO_CODE:
+        await update.message.reply_text(
+            "❌ Неверный промокод.\n\n"
+            "Пожалуйста, проверьте правильность введенного кода."
+        )
+        return
+    
+    # Проверяем, не истек ли срок действия промокода
+    if datetime.now() > PROMO_END_DATE:
+        await update.message.reply_text(
+            "❌ Срок действия промокода истек.\n\n"
+            "Промокод действовал до 9 августа 2025 года."
+        )
+        return
+    
+    # Проверяем, есть ли у пользователя активная подписка
+    local_subscriptions = get_all_active_subscriptions()
+    local_subscription = local_subscriptions.get(user_id)
+    
+    has_active_subscription = False
+    
+    # Проверяем локальную подписку
+    if local_subscription and local_subscription.get("is_active"):
+        expiry_date = local_subscription.get("expiry_date")
+        if expiry_date and expiry_date > datetime.now():
+            has_active_subscription = True
+            logger.info(f"Пользователь {user_id} имеет активную локальную подписку")
+    
+    # Проверяем API подписку
+    if not has_active_subscription:
+        user_data = await get_user_subscription(user_id)
+        if user_data and user_data.get("IsActive", False):
+            has_active_subscription = True
+            logger.info(f"Пользователь {user_id} имеет активную API подписку")
+    
+    if has_active_subscription:
+        await update.message.reply_text(
+            "❌ Промокод не может быть использован.\n\n"
+            "У вас уже есть активная подписка. Промокод можно использовать только один раз."
+        )
+        return
+    
+    # Активируем подписку через API
+    logger.info(f"Активируем подписку по промокоду для пользователя {user_id}")
+    api_success = await update_user_subscription(user_id, 30)
+    
+    if not api_success:
+        logger.error(f"Не удалось активировать подписку через API для пользователя {user_id}")
+        await update.message.reply_text(
+            "❌ Произошла ошибка при активации промокода.\n\n"
+            "Пожалуйста, попробуйте позже или обратитесь в поддержку."
+        )
+        return
+    
+    # Активируем подписку локально
+    activate_subscription(user_id, 30)
+    
+    # Получаем информацию о подписке для уведомления
+    subscription = get_all_active_subscriptions().get(user_id)
+    expiry_date_str = subscription["expiry_date"].strftime("%d.%m.%Y")
+    days_left = (subscription["expiry_date"] - datetime.now()).days
+    
+    # Отправляем уведомление об успешной активации
+    await update.message.reply_text(
+        f"✅ Промокод успешно активирован!\n\n"
+        f"Ваша подписка активирована до {expiry_date_str}.\n"
+        f"Осталось дней: {days_left}.\n\n"
+        f"Спасибо за использование CheckMate!"
+    )
+    
+    logger.info(f"Промокод успешно активирован для пользователя {user_id}")
 
 async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /subscription"""
