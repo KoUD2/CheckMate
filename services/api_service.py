@@ -192,8 +192,8 @@ async def update_user_subscription(tg_id: int, days: int = 30) -> bool:
 
         # Подготавливаем данные для запроса
         subscription_data = {
-            "IsActive": True,
-            "SubUntil": sub_until
+            "is_active": True,
+            "sub_until": sub_until
         }
 
         logger.info(f"Обновление подписки для пользователя {tg_id}")
