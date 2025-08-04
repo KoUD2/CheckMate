@@ -335,8 +335,6 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             text = re.sub(r'__([^_]+)__', r'\1', text)
             # Экранируем квадратные скобки
             text = text.replace('[', '\\[').replace(']', '\\]')
-            # Экранируем круглые скобки в ссылках
-            text = re.sub(r'\(([^)]+)\)', r'\\(\\1\\)', text)
             return text
         
         # Очищаем текст от проблемных Markdown символов перед сохранением
