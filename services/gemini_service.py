@@ -36,7 +36,7 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
     
     # Создание модели
     logger.info("Инициализация модели Gemini 2.5 Flash Preview")
-    model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     
     # Настройка параметров генерации
     generation_config = {
