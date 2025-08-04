@@ -338,7 +338,16 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
                 
                 if not os.path.exists(prompt_path):
                     logger.error(f"Файл промпта не найден: {prompt_path}")
-                    return "Ошибка проверки", f"Файл промпта не найден: {prompt_path}"
+                    error_msg = f"Файл промпта не найден: {prompt_path}"
+                    # Для заданий 37 и 38 возвращаем 3 значения даже при ошибке
+                    if task_number in ["37", "38"]:
+                        extra_info = {
+                            "scores": [0, 0, 0] if task_number == "37" else [0, 0, 0, 0, 0],
+                            "responses": [""] * (3 if task_number == "37" else 5)
+                        }
+                        return 0, error_msg, extra_info
+                    else:
+                        return "Ошибка проверки", error_msg
                 
                 async with aiofiles.open(prompt_path, "r", encoding="utf-8") as file:
                     prompt_template = await file.read()
@@ -598,4 +607,12 @@ async def check_with_gemini(user_data: dict, status_callback=None) -> tuple:
         if status_callback:
             await status_callback("❌ Произошла ошибка при проверке")
         
-        return "Ошибка проверки", error_msg 
+        # Для заданий 37 и 38 возвращаем 3 значения даже при ошибке
+        if task_number in ["37", "38"]:
+            extra_info = {
+                "scores": [0, 0, 0] if task_number == "37" else [0, 0, 0, 0, 0],
+                "responses": [""] * (3 if task_number == "37" else 5)
+            }
+            return 0, error_msg, extra_info
+        else:
+            return "Ошибка проверки", error_msg 

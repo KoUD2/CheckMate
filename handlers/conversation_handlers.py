@@ -195,7 +195,19 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
         if task_number == "37":
             # Для задания 37 функция возвращает дополнительную информацию
-            score, feedback, extra_info = await check_with_gemini(user_data=context.user_data, status_callback=update_status)
+            try:
+                result = await check_with_gemini(user_data=context.user_data, status_callback=update_status)
+                if len(result) == 3:
+                    score, feedback, extra_info = result
+                else:
+                    # Fallback если функция вернула неожиданное количество значений
+                    logger.error(f"Неожиданное количество возвращаемых значений для задания 37: {len(result)}")
+                    score, feedback = result[0], result[1] if len(result) > 1 else "Ошибка проверки"
+                    extra_info = {"scores": [0, 0, 0], "responses": ["", "", ""]}
+            except Exception as e:
+                logger.error(f"Ошибка при получении результата проверки задания 37: {e}")
+                score, feedback = 0, f"Ошибка при проверке: {str(e)}"
+                extra_info = {"scores": [0, 0, 0], "responses": ["", "", ""]}
 
             # Отправляем результат на бэкенд для задания 37
             try:
@@ -233,7 +245,19 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 logger.error(f"Ошибка при отправке результатов на бэкенд: {e}")
         elif task_number == "38":
             # Для задания 38 функция возвращает дополнительную информацию
-            score, feedback, extra_info = await check_with_gemini(user_data=context.user_data, status_callback=update_status)
+            try:
+                result = await check_with_gemini(user_data=context.user_data, status_callback=update_status)
+                if len(result) == 3:
+                    score, feedback, extra_info = result
+                else:
+                    # Fallback если функция вернула неожиданное количество значений
+                    logger.error(f"Неожиданное количество возвращаемых значений для задания 38: {len(result)}")
+                    score, feedback = result[0], result[1] if len(result) > 1 else "Ошибка проверки"
+                    extra_info = {"scores": [0, 0, 0, 0, 0], "responses": ["", "", "", "", ""]}
+            except Exception as e:
+                logger.error(f"Ошибка при получении результата проверки задания 38: {e}")
+                score, feedback = 0, f"Ошибка при проверке: {str(e)}"
+                extra_info = {"scores": [0, 0, 0, 0, 0], "responses": ["", "", "", "", ""]}
 
             # Отправляем результат на бэкенд для задания 38
             try:
@@ -276,7 +300,17 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 logger.error(f"Ошибка при отправке результатов задания 38 на бэкенд: {e}")
         else:
             # Для других заданий стандартный вызов
-            score, feedback = await check_with_gemini(user_data=context.user_data, status_callback=update_status)
+            try:
+                result = await check_with_gemini(user_data=context.user_data, status_callback=update_status)
+                if len(result) == 2:
+                    score, feedback = result
+                else:
+                    # Fallback если функция вернула неожиданное количество значений
+                    logger.error(f"Неожиданное количество возвращаемых значений для задания {task_number}: {len(result)}")
+                    score, feedback = result[0], result[1] if len(result) > 1 else "Ошибка проверки"
+            except Exception as e:
+                logger.error(f"Ошибка при получении результата проверки задания {task_number}: {e}")
+                score, feedback = 0, f"Ошибка при проверке: {str(e)}"
 
         # Уменьшаем счетчик бесплатных проверок после успешной проверки
         decrement_success = await decrement_user_free_checks(user_id)
