@@ -322,6 +322,26 @@ async def get_task_solution(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         # Удаляем сообщение о статусе
         await status_message.delete()
 
+        # Функция для очистки текста от проблемных Markdown символов
+        def clean_markdown_text(text):
+            """Очищает текст от проблемных Markdown символов"""
+            # Заменяем одиночные звездочки на обычный текст
+            text = re.sub(r'\*([^*]+)\*', r'\1', text)
+            # Заменяем двойные звездочки на обычный текст
+            text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+            # Заменяем подчеркивания на обычный текст
+            text = re.sub(r'_([^_]+)_', r'\1', text)
+            # Заменяем двойные подчеркивания на обычный текст
+            text = re.sub(r'__([^_]+)__', r'\1', text)
+            # Экранируем квадратные скобки
+            text = text.replace('[', '\\[').replace(']', '\\]')
+            # Экранируем круглые скобки в ссылках
+            text = re.sub(r'\(([^)]+)\)', r'\\(\\1\\)', text)
+            return text
+        
+        # Очищаем текст от проблемных Markdown символов перед сохранением
+        feedback = clean_markdown_text(feedback)
+        
         # Сохраняем обратную связь в контексте пользователя для дальнейшего использования
         context.user_data['feedback'] = feedback
 
