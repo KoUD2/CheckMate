@@ -212,10 +212,22 @@ async def update_user_subscription(tg_id: int, days: int = 30) -> bool:
                 if response.status in [200, 201, 204]:
                     logger.info(f"✅ Подписка пользователя {tg_id} успешно обновлена до {sub_until}")
                     return True
+                elif response.status == 404:
+                    logger.warning(f"⚠️ API endpoint не найден (404) для пользователя {tg_id}. Подписка будет активирована локально.")
+                    return False
+                elif response.status == 500:
+                    logger.error(f"❌ Ошибка сервера (500) при обновлении подписки пользователя {tg_id}")
+                    return False
                 else:
                     logger.error(f"❌ Ошибка при обновлении подписки пользователя {tg_id}: {response.status}")
                     logger.error(f"Ответ сервера: {response_text}")
                     return False
+    except aiohttp.ClientConnectorError as e:
+        logger.error(f"❌ Ошибка подключения к API при обновлении подписки пользователя {tg_id}: {e}")
+        return False
+    except aiohttp.ClientTimeout as e:
+        logger.error(f"❌ Таймаут при обновлении подписки пользователя {tg_id}: {e}")
+        return False
     except Exception as e:
         logger.error(f"❌ Исключение при обновлении подписки пользователя {tg_id}: {e}")
         logger.error(f"Тип ошибки: {type(e).__name__}")

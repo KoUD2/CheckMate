@@ -147,15 +147,7 @@ async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.info(f"Активируем подписку по промокоду {promo_code} для пользователя {user_id}")
     api_success = await update_user_subscription(user_id, promo_info["days"])
     
-    if not api_success:
-        logger.error(f"Не удалось активировать подписку через API для пользователя {user_id}")
-        await update.message.reply_text(
-            "❌ Произошла ошибка при активации промокода.\n\n"
-            "Пожалуйста, попробуйте позже или обратитесь в поддержку."
-        )
-        return
-    
-    # Активируем подписку локально
+    # Активируем подписку локально (всегда, независимо от результата API)
     activate_subscription(user_id, promo_info["days"])
     
     # Отмечаем промокод как использованный
@@ -166,13 +158,19 @@ async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     expiry_date_str = subscription["expiry_date"].strftime("%d.%m.%Y")
     days_left = (subscription["expiry_date"] - datetime.now()).days
     
+    # Формируем сообщение в зависимости от результата API
+    if api_success:
+        message = f"✅ Промокод {promo_code} успешно активирован!\n\n"
+    else:
+        message = f"✅ Промокод {promo_code} активирован локально!\n\n"
+        message += "⚠️ Примечание: Подписка активирована локально. API недоступен.\n\n"
+    
+    message += f"Ваша подписка активирована до {expiry_date_str}.\n"
+    message += f"Осталось дней: {days_left}.\n\n"
+    message += f"Спасибо за использование CheckMate!"
+    
     # Отправляем уведомление об успешной активации
-    await update.message.reply_text(
-        f"✅ Промокод {promo_code} успешно активирован!\n\n"
-        f"Ваша подписка активирована до {expiry_date_str}.\n"
-        f"Осталось дней: {days_left}.\n\n"
-        f"Спасибо за использование CheckMate!"
-    )
+    await update.message.reply_text(message)
     
     logger.info(f"Промокод {promo_code} успешно активирован для пользователя {user_id}")
 
