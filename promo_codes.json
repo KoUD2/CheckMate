@@ -1,0 +1,12 @@
+{
+  "TEACHY": {
+    "days": 30,
+    "end_date": "2025-08-09T23:59:59",
+    "description": "Промокод для учителей"
+  },
+  "NATALYAPRO": {
+    "days": 30,
+    "end_date": "2025-12-31T23:59:59",
+    "description": "Одноразовый промокод NatalyaPRO"
+  }
+}

@@ -8,6 +8,10 @@ from telegram.ext import ContextTypes
 import logging
 from services.log_cleaner_service import cleanup_logs_now, get_log_cleaner_service
 
+# Импортируем функции для работы с промокодами
+from handlers.subscription_handlers import USED_PROMO_CODES, PROMO_CODES
+from datetime import datetime
+
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
@@ -121,6 +125,53 @@ async def log_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             f"❌ Ошибка при получении статистики: {str(e)}"
         )
 
+async def promo_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик команды /promo_stats для получения статистики промокодов"""
+    user_id = update.effective_user.id
+    
+    # Проверяем права администратора
+    if not is_admin(user_id):
+        await update.message.reply_text(
+            "❌ У вас нет прав для выполнения этой команды."
+        )
+        return
+    
+    try:
+        # Подсчитываем статистику использования промокодов
+        promo_usage = {}
+        for used_code in USED_PROMO_CODES:
+            user_id_str, promo_code = used_code.split('_', 1)
+            if promo_code not in promo_usage:
+                promo_usage[promo_code] = 0
+            promo_usage[promo_code] += 1
+        
+        message = f"🎫 СТАТИСТИКА ПРОМОКОДОВ\n\n"
+        
+        # Показываем информацию о каждом промокоде
+        for promo_code, info in PROMO_CODES.items():
+            message += f"📋 {promo_code}\n"
+            message += f"   • Дней: {info['days']}\n"
+            message += f"   • Действует до: {info['end_date'].strftime('%d.%m.%Y')}\n"
+            message += f"   • Описание: {info['description']}\n"
+            message += f"   • Использовано раз: {promo_usage.get(promo_code, 0)}\n"
+            message += f"   • Статус: {'✅ Активен' if info['end_date'] > datetime.now() else '❌ Истек'}\n\n"
+        
+        # Общая статистика
+        total_used = len(USED_PROMO_CODES)
+        message += f"📊 ОБЩАЯ СТАТИСТИКА:\n"
+        message += f"   • Всего использований: {total_used}\n"
+        message += f"   • Активных промокодов: {len([code for code, info in PROMO_CODES.items() if info['end_date'] > datetime.now()])}\n"
+        
+        await update.message.reply_text(message)
+        
+        logger.info(f"Администратор {user_id} запросил статистику промокодов")
+        
+    except Exception as e:
+        logger.error(f"Ошибка при получении статистики промокодов: {e}")
+        await update.message.reply_text(
+            f"❌ Ошибка при получении статистики: {str(e)}"
+        )
+
 async def admin_help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /admin_help для показа административных команд"""
     user_id = update.effective_user.id
@@ -137,6 +188,8 @@ async def admin_help_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 📊 /log_stats - Статистика логов
 🧹 /clear_logs - Очистка логов
+🎫 /promo_stats - Статистика промокодов
+➕ /addpromo <КОД> - Создать новый промокод (30 дней)
 ❓ /admin_help - Эта справка
 
 ℹ️ Автоматическая очистка логов происходит каждые 2 дня.

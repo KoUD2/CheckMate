@@ -9,10 +9,10 @@ from handlers.conversation_handlers import (
     start, task_choice, get_task_description, get_graph_image, 
     get_task_solution, show_analysis, cancel, new_task, feedback
 )
-from handlers.subscription_handlers import subscription_command, promo_command
+from handlers.subscription_handlers import subscription_command, promo_command, add_promo_command
 from handlers.start_handler import start_callback_handler
 from handlers.feedback_handlers import rating_feedback
-from handlers.admin_handlers import clear_logs_command, log_stats_command, admin_help_command
+from handlers.admin_handlers import clear_logs_command, log_stats_command, admin_help_command, promo_stats_command
 from webhook_server import run_webhook_server
 from services.payment_callbacks import setup_bot
 from services.log_cleaner_service import start_log_cleaner
@@ -62,11 +62,13 @@ def main() -> None:
     application.add_handler(CommandHandler("feedback", feedback))
     application.add_handler(CommandHandler("subscription", subscription_command))
     application.add_handler(CommandHandler("promo", promo_command))
+    application.add_handler(CommandHandler("addpromo", add_promo_command))
     
     # Административные команды
     application.add_handler(CommandHandler("clear_logs", clear_logs_command))
     application.add_handler(CommandHandler("log_stats", log_stats_command))
     application.add_handler(CommandHandler("admin_help", admin_help_command))
+    application.add_handler(CommandHandler("promo_stats", promo_stats_command))
     
     application.add_handler(CallbackQueryHandler(start_callback_handler, pattern="^task_"))
 

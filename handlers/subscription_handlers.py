@@ -3,6 +3,8 @@ from telegram.ext import ContextTypes
 import logging
 from datetime import datetime, timedelta
 import re
+import json
+import os
 
 from services.payment_service import create_payment_link
 from services.api_service import get_user_subscription, calculate_days_left, update_user_subscription
@@ -11,9 +13,68 @@ from services.payment_callbacks import get_all_active_subscriptions, activate_su
 # Настройка логирования
 logger = logging.getLogger(__name__)
 
-# Промокод и дата окончания действия
-PROMO_CODE = "TEACHY"
-PROMO_END_DATE = datetime(2025, 8, 9, 23, 59, 59)
+# Файл для сохранения промокодов
+PROMO_CODES_FILE = "promo_codes.json"
+
+# Система промокодов
+PROMO_CODES = {
+    "TEACHY": {
+        "days": 30,
+        "end_date": datetime(2025, 8, 9, 23, 59, 59),
+        "description": "Промокод для учителей"
+    },
+    "NATALYAPRO": {
+        "days": 30,
+        "end_date": datetime(2025, 12, 31, 23, 59, 59),
+        "description": "Одноразовый промокод NatalyaPRO"
+    }
+}
+
+# Хранилище использованных промокодов (в реальном проекте должно быть в БД)
+USED_PROMO_CODES = set()
+
+def load_promo_codes():
+    """Загружает промокоды из файла"""
+    global PROMO_CODES
+    if os.path.exists(PROMO_CODES_FILE):
+        try:
+            with open(PROMO_CODES_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # Преобразуем строки дат обратно в datetime объекты
+                for code, info in data.items():
+                    if isinstance(info['end_date'], str):
+                        info['end_date'] = datetime.fromisoformat(info['end_date'])
+                PROMO_CODES.update(data)
+                logger.info(f"Загружено {len(data)} промокодов из файла")
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке промокодов: {e}")
+
+def save_promo_codes():
+    """Сохраняет промокоды в файл"""
+    try:
+        # Преобразуем datetime объекты в строки для JSON
+        data_to_save = {}
+        for code, info in PROMO_CODES.items():
+            data_to_save[code] = {
+                'days': info['days'],
+                'end_date': info['end_date'].isoformat(),
+                'description': info['description']
+            }
+        
+        with open(PROMO_CODES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+        logger.info(f"Сохранено {len(PROMO_CODES)} промокодов в файл")
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении промокодов: {e}")
+
+def is_promo_code_used(user_id: int, promo_code: str) -> bool:
+    """Проверяет, использовал ли пользователь промокод"""
+    return f"{user_id}_{promo_code}" in USED_PROMO_CODES
+
+def mark_promo_code_as_used(user_id: int, promo_code: str) -> None:
+    """Отмечает промокод как использованный"""
+    USED_PROMO_CODES.add(f"{user_id}_{promo_code}")
+    logger.info(f"Промокод {promo_code} отмечен как использованный для пользователя {user_id}")
 
 async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /promo для активации промокода"""
@@ -29,19 +90,29 @@ async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     
     promo_code = context.args[0].upper()
     
-    # Проверяем, что промокод правильный
-    if promo_code != PROMO_CODE:
+    # Проверяем, что промокод существует
+    if promo_code not in PROMO_CODES:
         await update.message.reply_text(
             "❌ Неверный промокод.\n\n"
             "Пожалуйста, проверьте правильность введенного кода."
         )
         return
     
+    promo_info = PROMO_CODES[promo_code]
+    
     # Проверяем, не истек ли срок действия промокода
-    if datetime.now() > PROMO_END_DATE:
+    if datetime.now() > promo_info["end_date"]:
         await update.message.reply_text(
-            "❌ Срок действия промокода истек.\n\n"
-            "Промокод действовал до 9 августа 2025 года."
+            f"❌ Срок действия промокода истек.\n\n"
+            f"Промокод действовал до {promo_info['end_date'].strftime('%d.%m.%Y')}."
+        )
+        return
+    
+    # Проверяем, не использовал ли пользователь этот промокод ранее
+    if is_promo_code_used(user_id, promo_code):
+        await update.message.reply_text(
+            "❌ Вы уже использовали этот промокод.\n\n"
+            "Каждый промокод можно использовать только один раз."
         )
         return
     
@@ -73,8 +144,8 @@ async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     
     # Активируем подписку через API
-    logger.info(f"Активируем подписку по промокоду для пользователя {user_id}")
-    api_success = await update_user_subscription(user_id, 30)
+    logger.info(f"Активируем подписку по промокоду {promo_code} для пользователя {user_id}")
+    api_success = await update_user_subscription(user_id, promo_info["days"])
     
     if not api_success:
         logger.error(f"Не удалось активировать подписку через API для пользователя {user_id}")
@@ -85,7 +156,10 @@ async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     
     # Активируем подписку локально
-    activate_subscription(user_id, 30)
+    activate_subscription(user_id, promo_info["days"])
+    
+    # Отмечаем промокод как использованный
+    mark_promo_code_as_used(user_id, promo_code)
     
     # Получаем информацию о подписке для уведомления
     subscription = get_all_active_subscriptions().get(user_id)
@@ -94,13 +168,76 @@ async def promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     
     # Отправляем уведомление об успешной активации
     await update.message.reply_text(
-        f"✅ Промокод успешно активирован!\n\n"
+        f"✅ Промокод {promo_code} успешно активирован!\n\n"
         f"Ваша подписка активирована до {expiry_date_str}.\n"
         f"Осталось дней: {days_left}.\n\n"
         f"Спасибо за использование CheckMate!"
     )
     
-    logger.info(f"Промокод успешно активирован для пользователя {user_id}")
+    logger.info(f"Промокод {promo_code} успешно активирован для пользователя {user_id}")
+
+async def add_promo_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработчик команды /addpromo для создания нового промокода"""
+    user_id = update.effective_user.id
+    
+    # Проверяем права администратора (используем тот же список, что и в admin_handlers.py)
+    ADMIN_IDS = {1054927360}
+    if user_id not in ADMIN_IDS:
+        await update.message.reply_text(
+            "❌ У вас нет прав для выполнения этой команды."
+        )
+        return
+    
+    # Проверяем, передан ли промокод
+    if not context.args:
+        await update.message.reply_text(
+            "❌ Пожалуйста, укажите название промокода.\n\n"
+            "Использование: /addpromo <НАЗВАНИЕ_ПРОМОКОДА>"
+        )
+        return
+    
+    promo_code = context.args[0].upper()
+    
+    # Проверяем, что промокод не содержит недопустимых символов
+    if not re.match(r'^[A-Z0-9]+$', promo_code):
+        await update.message.reply_text(
+            "❌ Название промокода может содержать только буквы и цифры."
+        )
+        return
+    
+    # Проверяем, что промокод не существует
+    if promo_code in PROMO_CODES:
+        await update.message.reply_text(
+            f"❌ Промокод {promo_code} уже существует."
+        )
+        return
+    
+    # Создаем новый промокод на месяц (30 дней)
+    new_promo = {
+        "days": 30,
+        "end_date": datetime.now() + timedelta(days=365),  # Действует год
+        "description": f"Одноразовый промокод {promo_code}"
+    }
+    
+    # Добавляем промокод в систему
+    PROMO_CODES[promo_code] = new_promo
+    
+    # Сохраняем в файл
+    save_promo_codes()
+    
+    # Отправляем подтверждение
+    await update.message.reply_text(
+        f"✅ Промокод {promo_code} успешно создан!\n\n"
+        f"📋 Информация:\n"
+        f"   • Период: 30 дней\n"
+        f"   • Действует до: {new_promo['end_date'].strftime('%d.%m.%Y')}\n"
+        f"   • Тип: Одноразовый\n"
+        f"   • Описание: {new_promo['description']}\n\n"
+        f"🎫 Пользователи могут активировать его командой:\n"
+        f"   /promo {promo_code}"
+    )
+    
+    logger.info(f"Администратор {user_id} создал новый промокод: {promo_code}")
 
 async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработчик команды /subscription"""
@@ -192,4 +329,7 @@ async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYP
 #         # Здесь должен быть код для работы с БД
 #         logger.info(f"Успешная оплата: {payment_id} для пользователя {user_id}")
 #     else:
-#         logger.warning(f"Платеж не подтвержден: {payment_id}, статус: {status}") 
+#         logger.warning(f"Платеж не подтвержден: {payment_id}, статус: {status}")
+
+# Загружаем промокоды при импорте модуля
+load_promo_codes() 
