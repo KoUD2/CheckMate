@@ -85,6 +85,7 @@ async def register_user(tg_id: int, username: str) -> bool:
 async def get_user_subscription(tg_id: int) -> dict:
     """
     Получает информацию о подписке пользователя.
+    При ошибках API использует локальную проверку подписки.
 
     Args:
         tg_id: ID пользователя в Telegram
@@ -109,12 +110,64 @@ async def get_user_subscription(tg_id: int) -> dict:
                     user_data = await response.json()
                     logger.info(f"Получены данные о подписке пользователя {tg_id}: {user_data}")
                     return user_data
+                elif response.status == 404:
+                    logger.warning(f"⚠️ API endpoint не найден (404) для пользователя {tg_id}. Используем локальную проверку.")
+                    return await get_local_subscription_fallback(tg_id)
                 else:
                     response_text = await response.text()
                     logger.error(f"Ошибка при получении данных о подписке пользователя {tg_id}: {response.status}, {response_text}")
-                    return None
+                    logger.info(f"Используем локальную проверку для пользователя {tg_id}")
+                    return await get_local_subscription_fallback(tg_id)
+    except aiohttp.ClientConnectorError as e:
+        logger.error(f"❌ Ошибка подключения к API при получении данных пользователя {tg_id}: {e}")
+        logger.info(f"Используем локальную проверку для пользователя {tg_id}")
+        return await get_local_subscription_fallback(tg_id)
+    except aiohttp.ClientTimeout as e:
+        logger.error(f"❌ Таймаут при получении данных пользователя {tg_id}: {e}")
+        logger.info(f"Используем локальную проверку для пользователя {tg_id}")
+        return await get_local_subscription_fallback(tg_id)
     except Exception as e:
         logger.error(f"Ошибка при получении данных о подписке пользователя {tg_id}: {e}")
+        logger.info(f"Используем локальную проверку для пользователя {tg_id}")
+        return await get_local_subscription_fallback(tg_id)
+
+async def get_local_subscription_fallback(tg_id: int) -> dict:
+    """
+    Fallback функция для получения данных о подписке из локального хранилища.
+
+    Args:
+        tg_id: ID пользователя в Telegram
+
+    Returns:
+        dict: Данные о подписке пользователя в формате API или None
+    """
+    try:
+        # Импортируем локальное хранилище подписок
+        from services.payment_callbacks import get_all_active_subscriptions
+        from datetime import datetime
+        
+        local_subscriptions = get_all_active_subscriptions()
+        local_subscription = local_subscriptions.get(tg_id)
+        
+        if local_subscription and local_subscription.get("is_active"):
+            # Проверяем не истекла ли локальная подписка
+            expiry_date = local_subscription.get("expiry_date")
+            if expiry_date and expiry_date > datetime.now():
+                # Формируем данные в формате API
+                api_format_data = {
+                    "IsActive": True,
+                    "SubUntil": expiry_date.isoformat(),
+                    "FreeChecksLeft": 0  # При активной подписке не важно
+                }
+                logger.info(f"Найдена активная локальная подписка для пользователя {tg_id}")
+                return api_format_data
+        
+        # Если локальной подписки нет или она истекла
+        logger.info(f"Локальная подписка не найдена или истекла для пользователя {tg_id}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Ошибка при получении локальной подписки для пользователя {tg_id}: {e}")
         return None
 
 def calculate_days_left(sub_until: str) -> int:
