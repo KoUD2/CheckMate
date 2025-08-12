@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 # URL API для регистрации пользователей
 API_BASE_URL = "https://checkmateai.ru"
-REGISTER_USER_URL = f"{API_BASE_URL}/tgusers"
-GET_USER_URL = f"{API_BASE_URL}/tgusers" # Базовый URL для получения данных о пользователе
-UPDATE_SUBSCRIPTION_URL = f"{API_BASE_URL}/tgusers" # Базовый URL для обновления подписки
-UPDATE_FREE_CHECKS_URL = f"{API_BASE_URL}/tgusers" # Базовый URL для обновления бесплатных проверок
+REGISTER_USER_URL = f"{API_BASE_URL}/api/tgusers"
+GET_USER_URL = f"{API_BASE_URL}/api/tgusers" # Базовый URL для получения данных о пользователе
+UPDATE_SUBSCRIPTION_URL = f"{API_BASE_URL}/api/tgusers" # Базовый URL для обновления подписки
+UPDATE_FREE_CHECKS_URL = f"{API_BASE_URL}/api/tgusers" # Базовый URL для обновления бесплатных проверок
 
 # Создаем SSL контекст с отключенной проверкой хоста
 ssl_context = ssl.create_default_context()
@@ -474,7 +474,7 @@ async def get_auth_token() -> str:
     """
     try:
         # URL для авторизации
-        auth_url = f"{API_BASE_URL}/auth/login"
+        auth_url = f"{API_BASE_URL}/api/auth/login"
 
         # Данные для авторизации (всегда одинаковые)
         auth_data = {
@@ -548,7 +548,7 @@ async def send_essay_result(essay_data: dict) -> bool:
             return False
 
         # URL для отправки результатов эссе
-        essays_url = f"{API_BASE_URL}/essays"
+        essays_url = f"{API_BASE_URL}/api/essays"
 
         # Подготавливаем заголовки с авторизацией
         headers = {
@@ -619,7 +619,7 @@ async def send_table_task_result(table_task_data: dict) -> bool:
             return False
 
         # URL для отправки результатов задания 38
-        table_tasks_url = f"{API_BASE_URL}/tabletasks"
+        table_tasks_url = f"{API_BASE_URL}/api/tabletasks"
 
         # Подготавливаем заголовки с авторизацией
         headers = {
